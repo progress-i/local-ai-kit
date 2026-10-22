@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Локальный помощник</title>
+<style>
+:root{font:16px/1.5 system-ui,sans-serif;color:#20292b;background:#f6f5f0}*{box-sizing:border-box}body{max-width:1150px;margin:28px auto;padding:0 20px}h1{font-size:26px;letter-spacing:-.6px;margin:0}header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ddd;padding-bottom:18px;margin-bottom:20px}small{color:#596866}main{display:grid;grid-template-columns:245px 1fr;gap:24px}button,select,input,textarea{font:inherit}button{background:#154c43;border:1px solid #154c43;color:white;border-radius:7px;padding:9px 13px;cursor:pointer}button.secondary{color:#154c43;background:transparent}button:disabled{opacity:.5;cursor:wait}textarea,select{width:100%;border:1px solid #c9ceca;background:white;border-radius:7px;padding:10px}textarea{resize:vertical}aside section{margin-bottom:25px}label{display:block;margin:8px 0}#messages{min-height:330px;max-height:55vh;overflow:auto}.message{white-space:pre-wrap;overflow-wrap:anywhere;padding:13px 16px;background:white;border:1px solid #e0e3de;border-radius:9px;margin-bottom:12px}.message.user{background:#e8efea;margin-left:30px}.role{font-size:12px;font-weight:650;color:#496259;margin-bottom:6px}#prompt{min-height:90px}.actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:9px}#status{white-space:pre-wrap;overflow-wrap:anywhere;color:#8c2a21;margin-top:12px}#pending{background:#fff0d6;border:1px solid #dab36e;padding:14px;border-radius:9px;margin-bottom:15px}pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}.file{display:flex;justify-content:space-between;gap:6px;margin-top:7px;overflow-wrap:anywhere}.file button{padding:0 6px;background:none;border:0;color:#8c2a21}audio{width:100%;margin-top:12px}details{margin-top:15px}#events{font-size:12px}input[type=file]{font-size:12px;width:100%}@media(max-width:750px){main{grid-template-columns:1fr}aside{display:grid;grid-template-columns:1fr 1fr;gap:15px}#messages{max-height:50vh}header{align-items:start}}
+[hidden]{display:none!important}
+.header-actions{display:flex;align-items:center;gap:12px}#model-status,#context-status{display:block;margin-top:5px}dialog{border:1px solid #c9ceca;border-radius:12px;width:min(620px,95vw);max-height:90vh;padding:24px;color:inherit;background:#f6f5f0}dialog::backdrop{background:#172c2770}dialog h2{margin:0 0 12px}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}.settings-grid input[type=number]{width:100%;border:1px solid #c9ceca;border-radius:7px;padding:8px}#model-info{white-space:pre-wrap;overflow-wrap:anywhere}.reasoning{font-size:14px;color:#596866;margin:5px 0}.module-upload{font-size:14px}@media(max-width:480px){.settings-grid{grid-template-columns:1fr}.header-actions{flex-direction:column;align-items:end}}
+</style>
+<header><div><h1>Локальный помощник</h1><small id="subtitle">Локальный чат</small><small id="model-status"></small></div><div class="header-actions"><small id="stage"></small><button id="settings-open" class="secondary">Настройки</button></div></header>
+<main><aside>
+<section><button id="new">Новый диалог</button><label>Диалоги<select id="chats"></select></label>
+<label id="agent-label" hidden><input type="checkbox" id="agent"> Инструменты</label>
+<label id="voice-label" hidden><input type="checkbox" id="voice"> Озвучивать ответ</label></section>
+<section id="memory-section"><label for="memory">Явная память</label><textarea id="memory" rows="4" maxlength="1500" placeholder="Например: меня зовут Анна"></textarea><button class="secondary" id="save-memory">Сохранить</button></section>
+<section id="documents-section"><label>Документы .txt / .md<input type="file" id="document" accept=".txt,.md,text/plain,text/markdown"></label><small>Небольшие тексты UTF-8</small><div id="documents"></div></section>
+</aside><article><div id="messages"></div><div id="pending" hidden><strong>Подтверждение записи</strong><pre id="operation"></pre><button id="approve">Разрешить</button> <button id="deny" class="secondary">Отклонить</button></div>
+<form id="form"><textarea id="prompt" maxlength="4000" placeholder="Сообщение" required></textarea><div class="actions"><button type="submit" id="send">Отправить</button><button type="button" id="mic" class="secondary" hidden>Записать голос</button><small id="busy"></small></div></form>
+<small id="context-status"></small><div id="status" role="alert"></div><audio id="audio" controls hidden></audio><details><summary>Операции инструментов</summary><pre id="events"></pre></details></article></main>
+<dialog id="settings-dialog"><form id="settings-form">
+<h2>Настройки модели</h2>
+<label>Модель<select id="settings-model"></select></label><small id="model-info"></small>
+<div class="settings-grid">
+<label>Контекст, токены<input id="cfg-context" type="number" min="512" max="131072" step="1" required></label>
+<label>Лимит генерации, токены<input id="cfg-max_tokens" type="number" min="16" max="16384" step="1" required></label>
+<label>Температура<input id="cfg-temperature" type="number" min="0" max="2" step="0.05" required></label>
+<label id="reasoning-setting"><input id="cfg-reasoning" type="checkbox"> Рассуждения</label>
+</div>
+<details><summary>Дополнительно</summary><div class="settings-grid">
+<label>Потоки CPU<input id="cfg-threads" type="number" min="1" max="256" step="1" required></label>
+<label>Из лимита генерации на рассуждения<input id="cfg-reasoning_budget" type="number" min="0" max="8192" step="1" required></label>
+<label>Batch<input id="cfg-batch" type="number" min="1" max="2048" step="1" required></label>
+<label>Microbatch<input id="cfg-ubatch" type="number" min="1" max="512" step="1" required></label>
+<label>RAM-кэш промптов, MiB<input id="cfg-cache_ram" type="number" min="0" max="1024" step="1" required></label>
+<label>Снимки контекста<input id="cfg-ctx_checkpoints" type="number" min="0" max="8" step="1" required></label>
+</div><button type="button" id="settings-defaults" class="secondary">Параметры модуля</button>
+<label class="module-upload">Добавить модуль модели (.json)<input type="file" id="model-module" accept=".json,application/json"></label></details>
+<p><small>Модель, контекст и параметры движка применяются с его перезапуском. История и документы сохраняются. Лимит генерации включает рассуждения. Больший контекст требует больше памяти.</small></p>
+<div id="settings-status" role="alert"></div><div class="actions"><button type="submit" id="settings-apply">Применить</button><button type="button" id="settings-close" class="secondary">Закрыть</button></div>
+</form></dialog>
+<script>
+'use strict';
+const TOKEN='__LOCAL_TOKEN__';
+const $=id=>document.getElementById(id);
+let state,chat,busy=false,recording=null,audioURL=null,settingsData;
+const NUMBER_SETTINGS=['context','max_tokens','temperature','threads','reasoning_budget','batch','ubatch','cache_ram','ctx_checkpoints'];
+async function api(path,body,binary=false){
+ const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-Local-Token':TOKEN},body:body===undefined?undefined:JSON.stringify(body)});
+ if(!response.ok){const err=await response.json();throw Error(err.error||response.statusText)}
+ return binary?response.blob():response.json();
+}
+function status(text){$('status').textContent=text||''}
+function setBusy(value){busy=value;$('send').disabled=value;$('approve').disabled=value;$('deny').disabled=value;$('new').disabled=value;$('chats').disabled=value;$('mic').disabled=value;for(const id of ['settings-open','settings-apply','settings-close','settings-model','settings-defaults','model-module'])$(id).disabled=value;$('busy').textContent=value?'Обработка…':''}
+async function guarded(fn){if(busy)return;setBusy(true);status('');try{await fn()}catch(e){if(chat){try{chat=await api('/api/chat/'+chat.id);draw()}catch{}}status(e.message);if($('settings-dialog').open)$('settings-status').textContent=e.message}finally{setBusy(false)}}
+function messageBlock(message,index){
+ const block=document.createElement('div');block.className='message '+message.role;block.dataset.messageIndex=index;
+ const role=document.createElement('div');role.className='role';role.textContent=message.role==='user'?'Вы':'Помощник';
+ const detail=document.createElement('details');detail.className='reasoning';detail.hidden=!message.reasoning_content;
+ const title=document.createElement('summary');title.textContent='Рассуждения';const reasoning=document.createElement('div');reasoning.textContent=message.reasoning_content||'';detail.append(title,reasoning);
+ const content=document.createElement('div');content.className='content';content.textContent=message.content||'';block.append(role,detail,content);return block;
+}
+function draw(){
+ const area=$('messages');area.replaceChildren();
+ for(const [index,message] of chat.messages.entries()){if(!['user','assistant'].includes(message.role)||(!message.content&&!message.reasoning_content))continue;
+  area.append(messageBlock(message,index));
+ }
+ area.scrollTop=area.scrollHeight;
+ $('pending').hidden=!chat.pending;$('operation').textContent=chat.pending?JSON.stringify(chat.pending.calls.map(c=>({tool:c.function.name,arguments:JSON.parse(c.function.arguments)})),null,2):'';
+ const context=chat.context;$('context-status').textContent=context?'Последний запрос: '+context.input_tokens+' токенов; контекст '+context.limit+'.'+(context.omitted_messages?' Ранние сообщения исключены из запроса; полная история сохранена.':''):'';
+ $('events').textContent=JSON.stringify(chat.events||[],null,2);$('prompt').disabled=!!chat.pending;
+}
+async function chatRequest(path,body){
+ const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Local-Token':TOKEN},body:JSON.stringify({...body,stream:true})});
+ if(!response.ok){const error=await response.json();throw Error(error.error||response.statusText)}
+ const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',result=null;
+ function accept(line){
+  if(!line.trim())return;const event=JSON.parse(line);
+  if(event.type==='error')throw Error(event.error);
+  if(event.type==='done'){result=event.chat;return}
+  if(event.type==='chat'){chat=event.chat;draw();return}
+  if(event.type!=='delta')return;
+  if(!Number.isInteger(event.index)||event.index<0||event.index>chat.messages.length||!['content','reasoning_content'].includes(event.field)||typeof event.text!=='string')throw Error('Некорректный фрагмент ответа.');
+  if(event.index===chat.messages.length)chat.messages.push({role:'assistant',content:''});
+  const message=chat.messages[event.index];if(message.role!=='assistant')throw Error('Некорректное сообщение модели.');
+  message[event.field]=(message[event.field]||'')+event.text;
+  const area=$('messages'),follow=area.scrollHeight-area.scrollTop-area.clientHeight<100;
+  let block=area.querySelector('[data-message-index="'+event.index+'"]');
+  if(!block){block=messageBlock(message,event.index);area.append(block)}
+  else{block.querySelector('.content').textContent=message.content||'';const detail=block.querySelector('.reasoning');detail.hidden=!message.reasoning_content;detail.querySelector('div').textContent=message.reasoning_content||''}
+  if(follow)area.scrollTop=area.scrollHeight;
+  $('busy').textContent=event.field==='reasoning_content'?'Рассуждает…':'Пишет ответ…';
+ }
+ try{
+  while(true){const {value,done}=await reader.read();buffer+=decoder.decode(value,{stream:!done});let end;
+   while((end=buffer.indexOf('\n'))!==-1){const line=buffer.slice(0,end);buffer=buffer.slice(end+1);accept(line)}
+   if(done)break;
+  }
+  if(buffer.trim())accept(buffer);
+  if(!result)throw Error('Поток ответа прерван. Повторите запрос.');
+  return result;
+ }catch(error){await reader.cancel().catch(()=>{});throw error}finally{reader.releaseLock()}
+}
+async function refresh(){
+ state=await api('/api/state');$('stage').textContent='Этап '+state.stage;
+ const current=state.settings.models.find(m=>m.id===state.settings.values.model);
+ $('subtitle').textContent=state.stage<2?'Локальный чат':'История · документы · явная память';
+ $('model-status').textContent=current.name+' · '+state.settings.backend.toUpperCase()+' · контекст '+state.settings.values.context+(state.settings.running?'':' · модель остановлена');
+ $('memory-section').hidden=state.stage<2;$('documents-section').hidden=state.stage<2;
+ $('agent-label').hidden=state.stage<3||!current.capabilities.tools;if($('agent-label').hidden)$('agent').checked=false;$('voice-label').hidden=state.stage<4;$('mic').hidden=state.stage<4;
+ $('memory').value=state.memory;$('chats').replaceChildren();
+ for(const c of state.chats){const o=document.createElement('option');o.value=c.id;const model=state.settings.models.find(m=>m.id===c.model);o.textContent=c.title+(state.settings.models.length>1?' · '+(model?model.name:c.model):'');$('chats').append(o)}
+ if(chat)$('chats').value=chat.id;
+ $('documents').replaceChildren();
+ for(const name of state.documents){const row=document.createElement('div');row.className='file';const label=document.createElement('span');label.textContent=name;const button=document.createElement('button');button.textContent='×';button.title='Удалить копию документа';button.onclick=()=>guarded(async()=>{await api('/api/document-delete',{name});await refresh()});row.append(label,button);$('documents').append(row)}
+}
+async function speakLatest(){if(!$('voice').checked||chat.pending)return;const message=[...chat.messages].reverse().find(m=>m.role==='assistant'&&m.content);if(!message)return;
+ const blob=await api('/api/speak',{text:message.content},true);if(audioURL)URL.revokeObjectURL(audioURL);audioURL=URL.createObjectURL(blob);$('audio').src=audioURL;$('audio').hidden=false;try{await $('audio').play()}catch{status('Нажмите ▶ на проигрывателе.')}
+}
+$('form').onsubmit=e=>{e.preventDefault();guarded(async()=>{const text=$('prompt').value;chat=await chatRequest('/api/chat',{id:chat.id,text,agent:$('agent').checked});$('prompt').value='';draw();await refresh();await speakLatest()})};
+$('new').onclick=()=>guarded(async()=>{chat=await api('/api/new',{});draw();await refresh()});
+$('chats').onchange=()=>guarded(async()=>{chat=await api('/api/chat/'+$('chats').value);draw()});
+$('save-memory').onclick=()=>guarded(async()=>{await api('/api/memory',{text:$('memory').value});status('Память сохранена.')});
+$('document').onchange=()=>guarded(async()=>{const f=$('document').files[0];if(!f)return;if(f.size>40000)throw Error('Документ слишком большой.');const text=new TextDecoder('utf-8',{fatal:true}).decode(await f.arrayBuffer());await api('/api/document',{name:f.name,text});$('document').value='';await refresh()});
+for(const [id,approved] of [['approve',true],['deny',false]])$(id).onclick=()=>guarded(async()=>{chat=await chatRequest('/api/approve',{id:chat.id,approved});draw();await speakLatest()});
+function fillSettings(values){
+ for(const key of NUMBER_SETTINGS)$('cfg-'+key).value=values[key];
+ const module=settingsData.models.find(m=>m.id===$('settings-model').value);
+ $('cfg-reasoning').disabled=!module.capabilities.reasoning;
+ $('cfg-reasoning').checked=module.capabilities.reasoning&&values.reasoning;
+ $('cfg-context').max=module.context_limit;
+ $('model-info').textContent=module.file+' · '+(module.size/1024**3).toFixed(2)+' GiB'+(module.downloaded?' · файл скачан':' · требуется скачивание')+'\nКонтекст модуля: до '+module.context_limit+'; минимум свободной RAM профиля: '+module.min_free_gib+' GiB.';
+ $('settings-apply').textContent=module.downloaded?'Применить':'Скачать и применить';
+ $('settings-status').textContent='';
+}
+function settingsOptions(data,selected){
+ settingsData=data;$('settings-model').replaceChildren();
+ for(const module of data.models){const option=document.createElement('option');option.value=module.id;option.textContent=module.name;$('settings-model').append(option)}
+ $('settings-model').value=selected||data.values.model;
+ const module=data.models.find(m=>m.id===$('settings-model').value);
+ fillSettings(module.id===data.values.model?data.values:module.values);
+}
+$('settings-open').onclick=()=>guarded(async()=>{settingsOptions(await api('/api/settings'));$('settings-dialog').showModal()});
+$('settings-close').onclick=()=>{if(!busy)$('settings-dialog').close()};
+$('settings-dialog').oncancel=e=>{if(busy)e.preventDefault()};
+$('settings-model').onchange=()=>{const module=settingsData.models.find(m=>m.id===$('settings-model').value);fillSettings(module.id===settingsData.values.model?settingsData.values:module.values)};
+$('settings-defaults').onclick=()=>fillSettings(settingsData.models.find(m=>m.id===$('settings-model').value).defaults);
+$('settings-form').onsubmit=e=>{e.preventDefault();guarded(async()=>{
+ const values={model:$('settings-model').value,reasoning:$('cfg-reasoning').checked};for(const key of NUMBER_SETTINGS)values[key]=Number($('cfg-'+key).value);
+ $('settings-status').textContent='Проверка файла и применение настроек… При скачивании прогресс отображается в терминале.';
+ const result=await api('/api/settings',values);if(result.chat)chat=result.chat;
+ await refresh();draw();$('settings-dialog').close();status(result.reloaded?'Модель загружена. Настройки сохранены.':'Настройки сохранены.');
+})};
+$('model-module').onchange=()=>guarded(async()=>{const file=$('model-module').files[0];if(!file)return;if(file.size>65536)throw Error('Модуль: максимум 64 KiB.');const body=JSON.parse(await file.text());const result=await api('/api/model-module',body);$('model-module').value='';settingsOptions(result.settings,result.id);$('settings-status').textContent='Модуль добавлен. Проверьте параметры и нажмите «Скачать и применить».'});
+function wav16(samples,rate){
+ const count=Math.floor(samples.length*16000/rate),buffer=new ArrayBuffer(44+count*2),view=new DataView(buffer);
+ function word(offset,s){for(let i=0;i<s.length;i++)view.setUint8(offset+i,s.charCodeAt(i))}
+ word(0,'RIFF');view.setUint32(4,36+count*2,true);word(8,'WAVE');word(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,16000,true);view.setUint32(28,32000,true);view.setUint16(32,2,true);view.setUint16(34,16,true);word(36,'data');view.setUint32(40,count*2,true);
+ for(let i=0;i<count;i++){const start=Math.floor(i*rate/16000),end=Math.max(start+1,Math.floor((i+1)*rate/16000));let sum=0;for(let j=start;j<Math.min(end,samples.length);j++)sum+=samples[j];view.setInt16(44+i*2,Math.max(-1,Math.min(1,sum/(end-start)))*32767,true)}
+ return new Uint8Array(buffer);
+}
+async function stopRecording(){
+ const r=recording;if(!r)return;recording=null;clearTimeout(r.timer);r.processor.disconnect();r.source.disconnect();r.stream.getTracks().forEach(t=>t.stop());await r.context.close();$('mic').textContent='Записать голос';$('send').disabled=false;$('settings-open').disabled=false;
+ const all=new Float32Array(r.chunks.reduce((n,c)=>n+c.length,0));let offset=0;for(const chunk of r.chunks){all.set(chunk,offset);offset+=chunk.length}
+ const bytes=wav16(all,r.rate);let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
+ await guarded(async()=>{const result=await api('/api/transcribe',{wav:btoa(binary)});$('prompt').value=result.text;status('Речь распознана. Нажмите «Отправить».')});
+}
+$('mic').onclick=async()=>{
+ if(recording){try{await stopRecording()}catch(e){status(e.message)}return}if(busy)return;
+ let stream=null,context=null;
+ try{status('');stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true},video:false});context=new AudioContext();await context.resume();const moduleURL=URL.createObjectURL(new Blob([`class LocalRecorder extends AudioWorkletProcessor{process(inputs){if(inputs[0]&&inputs[0][0])this.port.postMessage(inputs[0][0]);return true}}registerProcessor('local-recorder',LocalRecorder);`],{type:'application/javascript'}));try{await context.audioWorklet.addModule(moduleURL)}finally{URL.revokeObjectURL(moduleURL)}const source=context.createMediaStreamSource(stream),processor=new AudioWorkletNode(context,'local-recorder',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[1]});const r={stream,context,source,processor,chunks:[],rate:context.sampleRate};recording=r;$('send').disabled=true;$('settings-open').disabled=true;processor.port.onmessage=e=>{if(recording===r)r.chunks.push(new Float32Array(e.data))};source.connect(processor);processor.connect(context.destination);r.timer=setTimeout(()=>stopRecording().catch(e=>status(e.message)),29000);$('mic').textContent='Остановить запись';status('Говорите. Максимум 29 секунд.')}catch(e){recording=null;if(stream)stream.getTracks().forEach(t=>t.stop());if(context&&context.state!=='closed')await context.close().catch(()=>{});$('send').disabled=false;$('settings-open').disabled=false;$('mic').textContent='Записать голос';status(e.message)}
+};
+guarded(async()=>{await refresh();chat=state.chats.length?await api('/api/chat/'+state.chats[0].id):await api('/api/new',{});draw();await refresh()});
+</script>
+</html>

@@ -1,0 +1,118 @@
+{
+  "schema": 2,
+  "review_date": "2026-10-21",
+  "python_version": "3.12.15",
+  "python_release": "20261013",
+  "llama_version": "v0.7.0",
+  "llama_commit": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "llama_build_number": 11669,
+  "whisper_version": "v1.9.5",
+  "whisper_commit": "d1be6fde11ac6e0407606b4e42fe72d34add8037",
+  "packages": {
+    "cmake": "4.1.2",
+    "psutil": "7.2.2",
+    "wasmtime": "49.0.0",
+    "piper-tts": "1.8.0",
+    "onnxruntime": "1.31.0",
+    "numpy": "2.5.4",
+    "protobuf": "7.36.2",
+    "flatbuffers": "25.12.19",
+    "packaging": "26.3",
+    "pathvalidate": "3.3.1",
+    "msvc-runtime": "14.44.35112"
+  },
+  "artifacts": {
+    "python-linux": {
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.12.15%2B20261013-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "178d3d83b6e8e99285a65d3fce9c16b87952cc5efdb4d1a0e3ff3be18ff0fc9c",
+      "size": 34340172
+    },
+    "python-windows": {
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.12.15%2B20261013-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "sha256": "7a2aef48e5ee569e310b29b32681debbc5d888e92790d85331a47736c6b06aad",
+      "size": 22019610
+    },
+    "llama-source": {
+      "url": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/620d2225cc436ab0b001e3200e590e3b286ef9ab",
+      "sha256": "1d4a987d9bd048f6e93107e838026438df70fbde237fc0c69c63d600512b4bd9",
+      "size": 38195486
+    },
+    "ui": {
+      "url": "https://huggingface.co/buckets/ggml-org/llama-ui/resolve/b11669/dist.tar.gz?download=true",
+      "sha256": "81d35456d45e17b5650fd8cc64d10f920e033e31cbbbc959eceeb0e47b6a3d4b",
+      "size": 3136013
+    },
+    "whisper-source": {
+      "url": "https://codeload.github.com/ggml-org/whisper.cpp/tar.gz/refs/tags/v1.9.5",
+      "sha256": "ff1a9053feb509ff9d7729703355541ae9690073a6b1c40eb692c962e0dc1720",
+      "size": 9626464
+    },
+    "w64devkit": {
+      "url": "https://github.com/skeeto/w64devkit/releases/download/v2.10.1/w64devkit-x64-2.10.1.7z.exe",
+      "sha256": "add1edf984ce4d473cfeb7c52e0ab38db73a855bba6c7f564d5e16648eb2896a",
+      "size": 67263552
+    },
+    "vulkan-windows": {
+      "url": "https://sdk.lunarg.com/sdk/download/1.4.363.0/windows/vulkansdk-windows-X64-1.4.363.0.exe",
+      "sha256": "94a82d378f7a5e3e54c9db7d2fb7016af136e14ac0a18dbf0f2f67a36352d141",
+      "size": 303082720
+    },
+    "vulkan-linux": {
+      "url": "https://sdk.lunarg.com/sdk/download/1.4.363.0/linux/vulkansdk-linux-x86_64-1.4.363.0.tar.xz",
+      "sha256": "197962f5cbf80baf2775a03336a01cee7c8745686c65aaa70d3f751ade4d7e43",
+      "size": 366564872
+    },
+    "whisper-model": {
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base.bin",
+      "sha256": "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe",
+      "size": 147951465
+    },
+    "piper-model": {
+      "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/ru/ru_RU/denis/medium/ru_RU-denis-medium.onnx",
+      "sha256": "15fab56e11a097858ee115545d0f697fc2a316c41a291a5362349fb870411b0a",
+      "size": 63201294
+    },
+    "piper-config": {
+      "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/ru/ru_RU/denis/medium/ru_RU-denis-medium.onnx.json",
+      "sha256": "831c860dac0b5073eaa81610a0a638ec23d90a6cf8e5f871b4485c2cec3767c8",
+      "size": 4823
+    },
+    "piper-card": {
+      "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/ru/ru_RU/denis/medium/MODEL_CARD",
+      "sha256": "8b5d685dd80f8ad3f8dbbe1c56b16bb0809f00c144af3642dbcf3b707eb89c12",
+      "size": 276
+    }
+  },
+  "models": {
+    "default": "qwen3.5-9b",
+    "modules": {
+      "qwen3.5-9b": {
+        "id": "qwen3.5-9b",
+        "name": "Qwen3.5-9B · Q4_K_M",
+        "engine": "llama.cpp",
+        "file": "Qwen3.5-9B-Q4_K_M.gguf",
+        "url": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/resolve/3885219b6810b007914f3a7950a8d1b469d598a5/Qwen3.5-9B-Q4_K_M.gguf",
+        "sha256": "03b74727a860a56338e042c4420bb3f04b2fec5734175f4cb9fa853daf52b7e8",
+        "size": 5680522464,
+        "capabilities": {
+          "tools": true,
+          "reasoning": true
+        },
+        "context_limit": 32768,
+        "min_free_gib": 7.5,
+        "defaults": {
+          "context": 4096,
+          "threads": 4,
+          "batch": 128,
+          "ubatch": 64,
+          "cache_ram": 0,
+          "ctx_checkpoints": 0,
+          "reasoning": false,
+          "reasoning_budget": 128,
+          "temperature": 0.2,
+          "max_tokens": 384
+        }
+      }
+    }
+  }
+}
