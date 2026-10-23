@@ -317,6 +317,26 @@ class Assistant:
         (docs / name).write_text(text, encoding="utf-8")
 
 
+    def delete_chats(self, ident=None, *, all_chats=False):
+        folder = self.data / "chats"
+        if folder.resolve() != folder.absolute() or not folder.is_dir():
+            raise ValueError("Небезопасная папка диалогов.")
+        if all_chats is True:
+            targets = sorted(p for p in folder.glob("*.json")
+                             if re.fullmatch(r"[0-9a-f]{32}\.json", p.name))
+        else:
+            if not isinstance(ident, str) or not re.fullmatch(r"[0-9a-f]{32}", ident):
+                raise ValueError("Неверный ID диалога.")
+            targets = [folder / (ident + ".json")]
+        for path in targets:
+            if path.is_symlink() or not path.is_file():
+                raise ValueError("Диалог не найден или является ссылкой.")
+        for path in targets:
+            path.unlink()
+        return {"ok": True, "deleted": len(targets)}
+
+
+
 def handler_for(app):
     class Handler(BaseHTTPRequestHandler):
         server_version = "LocalAssistant/1"
@@ -408,7 +428,12 @@ def handler_for(app):
                     if self.path in ("/api/chat", "/api/approve") and body.get("stream") is True:
                         self.stream_reply(body)
                         return
-                    if self.path == "/api/new":
+                    if self.path in ("/api/chat-delete", "/api/chats-clear"):
+                        if body.get("confirmed") is not True:
+                            raise ValueError("Подтвердите удаление в интерфейсе.")
+                        result = (app.delete_chats(all_chats=True) if self.path == "/api/chats-clear"
+                                  else app.delete_chats(body.get("id")))
+                    elif self.path == "/api/new":
                         result = app.new_chat()
                     elif self.path == "/api/settings":
                         if not app.runtime:

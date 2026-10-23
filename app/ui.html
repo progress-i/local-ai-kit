@@ -10,6 +10,7 @@
 <header><div><h1>Локальный помощник</h1><small id="subtitle">Локальный чат</small><small id="model-status"></small></div><div class="header-actions"><small id="stage"></small><button id="settings-open" class="secondary">Настройки</button></div></header>
 <main><aside>
 <section><button id="new">Новый диалог</button><label>Диалоги<select id="chats"></select></label>
+<div class="actions"><button type="button" id="delete-chat" class="secondary">Удалить диалог</button><button type="button" id="clear-chats" class="secondary">Очистить историю</button></div>
 <label id="agent-label" hidden><input type="checkbox" id="agent"> Инструменты</label>
 <label id="voice-label" hidden><input type="checkbox" id="voice"> Озвучивать ответ</label></section>
 <section id="memory-section"><label for="memory">Явная память</label><textarea id="memory" rows="4" maxlength="1500" placeholder="Например: меня зовут Анна"></textarea><button class="secondary" id="save-memory">Сохранить</button></section>
@@ -50,7 +51,7 @@ async function api(path,body,binary=false){
  return binary?response.blob():response.json();
 }
 function status(text){$('status').textContent=text||''}
-function setBusy(value){busy=value;$('send').disabled=value;$('approve').disabled=value;$('deny').disabled=value;$('new').disabled=value;$('chats').disabled=value;$('mic').disabled=value;for(const id of ['settings-open','settings-apply','settings-close','settings-model','settings-defaults','model-module'])$(id).disabled=value;$('busy').textContent=value?'Обработка…':''}
+function setBusy(value){for(const id of ['delete-chat','clear-chats'])$(id).disabled=value;busy=value;$('send').disabled=value;$('approve').disabled=value;$('deny').disabled=value;$('new').disabled=value;$('chats').disabled=value;$('mic').disabled=value;for(const id of ['settings-open','settings-apply','settings-close','settings-model','settings-defaults','model-module'])$(id).disabled=value;$('busy').textContent=value?'Обработка…':''}
 async function guarded(fn){if(busy)return;setBusy(true);status('');try{await fn()}catch(e){if(chat){try{chat=await api('/api/chat/'+chat.id);draw()}catch{}}status(e.message);if($('settings-dialog').open)$('settings-status').textContent=e.message}finally{setBusy(false)}}
 function messageBlock(message,index){
  const block=document.createElement('div');block.className='message '+message.role;block.dataset.messageIndex=index;
@@ -117,6 +118,25 @@ async function speakLatest(){if(!$('voice').checked||chat.pending)return;const m
  const blob=await api('/api/speak',{text:message.content},true);if(audioURL)URL.revokeObjectURL(audioURL);audioURL=URL.createObjectURL(blob);$('audio').src=audioURL;$('audio').hidden=false;try{await $('audio').play()}catch{status('Нажмите ▶ на проигрывателе.')}
 }
 $('form').onsubmit=e=>{e.preventDefault();guarded(async()=>{const text=$('prompt').value;chat=await chatRequest('/api/chat',{id:chat.id,text,agent:$('agent').checked});$('prompt').value='';draw();await refresh();await speakLatest()})};
+async function deleteHistory(all=false){
+ if(busy||!chat)return;
+ if(recording){status('Сначала завершите запись голоса.');return}
+ const id=chat.id;
+ const question=all?'Удалить всю историю диалогов безвозвратно? Память, документы и заметки сохранятся.':'Удалить диалог «'+(chat.title||'Новый диалог')+'» безвозвратно?';
+ if(!window.confirm(question))return;
+ await guarded(async()=>{
+  await api(all?'/api/chats-clear':'/api/chat-delete',all?{confirmed:true}:{id,confirmed:true});
+  await refresh();
+  const next=state.chats.find(c=>c.model===state.settings.values.model);
+  chat=next?await api('/api/chat/'+next.id):await api('/api/new',{});
+  $('prompt').value='';
+  const audio=$('audio');audio.pause();audio.removeAttribute('src');audio.load();audio.hidden=true;
+  if(audioURL){URL.revokeObjectURL(audioURL);audioURL=null}
+  draw();await refresh();status(all?'История очищена.':'Диалог удалён.');
+ });
+}
+$('delete-chat').onclick=()=>deleteHistory(false);
+$('clear-chats').onclick=()=>deleteHistory(true);
 $('new').onclick=()=>guarded(async()=>{chat=await api('/api/new',{});draw();await refresh()});
 $('chats').onchange=()=>guarded(async()=>{chat=await api('/api/chat/'+$('chats').value);draw()});
 $('save-memory').onclick=()=>guarded(async()=>{await api('/api/memory',{text:$('memory').value});status('Память сохранена.')});
